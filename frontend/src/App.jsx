@@ -11,6 +11,7 @@ import RoomsManagement  from './components/RoomsManagement';
 import Reports          from './components/Reports';
 import ProtectedRoute   from './components/ProtectedRoute';
 import Login            from './components/Login';
+import Register         from './components/Register';
 
 function App() {
   return (
@@ -19,7 +20,8 @@ function App() {
         <Routes>
           <Route path="/"       element={<PublicLayout><HomePage /></PublicLayout>} />
           <Route path="/booking" element={<PublicLayout><BookingForm /></PublicLayout>} />
-          <Route path="/login"  element={<Login />} />
+          <Route path="/login"    element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/admin"
             element={<ProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/bookings"
@@ -67,10 +69,16 @@ const NavBar = () => {
                 Admin Panel
               </Link>
             ) : (
-              <Link to="/login"
-                className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
-                เข้าสู่ระบบ
-              </Link>
+              <>
+                <Link to="/register"
+                  className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">
+                  สมัครสมาชิก
+                </Link>
+                <Link to="/login"
+                  className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">
+                  เข้าสู่ระบบ
+                </Link>
+              </>
             )}
           </div>
         </div>

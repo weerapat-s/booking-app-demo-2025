@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API_URL from '../config';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError]   = useState('');
   const [loading, setLoading] = useState(false);
+  const justRegistered = location.state?.registered;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -56,6 +58,11 @@ const Login = () => {
             <h2 className="text-2xl font-bold text-gray-800 mb-1">เข้าสู่ระบบ</h2>
             <p className="text-gray-500 text-sm mb-6">กรอกข้อมูลเพื่อเข้าใช้งาน Admin Panel</p>
 
+            {justRegistered && (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-5">
+                สมัครสมาชิกสำเร็จแล้ว! กรุณาเข้าสู่ระบบ
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5">
                 {error}
@@ -89,6 +96,11 @@ const Login = () => {
               Default: <span className="font-mono text-gray-600">admin</span> /
               <span className="font-mono text-gray-600"> admin123</span>
             </div>
+
+            <p className="text-center text-sm text-gray-500 mt-4">
+              ยังไม่มีบัญชี?{' '}
+              <Link to="/register" className="text-blue-600 hover:underline font-medium">สมัครสมาชิก</Link>
+            </p>
           </div>
 
           <div className="text-center mt-6">

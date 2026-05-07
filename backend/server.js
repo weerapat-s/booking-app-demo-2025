@@ -138,6 +138,27 @@ const validateRoomData = (data) => {
   return errors;
 };
 
+app.post('/api/register', async (req, res) => {
+  const { username, password, name, email } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ error: 'กรุณากรอก username และ password' });
+  if (username.length < 3)
+    return res.status(400).json({ error: 'username ต้องมีอย่างน้อย 3 ตัวอักษร' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'password ต้องมีอย่างน้อย 6 ตัวอักษร' });
+  try {
+    const existing = await db.user.findUnique({ where: { username } });
+    if (existing) return res.status(409).json({ error: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว' });
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await db.user.create({
+      data: { username, password: hashed, role: 'user', name: name || null, email: email || null }
+    });
+    res.status(201).json({ message: 'สมัครสมาชิกสำเร็จ', user: { id: user.id, username: user.username } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
