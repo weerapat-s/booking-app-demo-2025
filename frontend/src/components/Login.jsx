@@ -20,7 +20,7 @@ const Login = () => {
     try {
       const res = await axios.post(`${API_URL}/api/login`, formData);
       login(res.data.user, res.data.token);
-      navigate(res.data.user.role === 'admin' ? '/admin' : '/booking');
+      navigate(res.data.user.role === 'admin' ? '/admin' : '/home');
     } catch (err) {
       setError(err.response?.data?.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     } finally {
