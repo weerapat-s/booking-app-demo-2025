@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API_URL from '../config';
+
+const POLL_MS = 30000;
 
 const statusLabel = { pending: 'รอดำเนินการ', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', completed: 'เสร็จสิ้น' };
 const statusColor = { pending: 'bg-yellow-400', confirmed: 'bg-green-400', cancelled: 'bg-red-400', completed: 'bg-blue-400' };
@@ -13,16 +15,26 @@ const Reports = () => {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [exporting, setExporting] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const timerRef = useRef(null);
 
-  useEffect(() => {
+  const fetchReport = useCallback((showLoader = false) => {
+    if (showLoader) setLoading(true);
     axios.get(`${API_URL}/api/reports`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => setBookings(r.data.bookings))
+      .then(r => { setBookings(r.data.bookings); setLastUpdated(new Date()); setIsOnline(true); setError(null); })
       .catch(err => {
         if (err.response?.status === 401 || err.response?.status === 403) logout();
-        else setError('ไม่สามารถดึงข้อมูลรายงานได้');
+        else { setError('ไม่สามารถดึงข้อมูลรายงานได้'); setIsOnline(false); }
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, logout]);
+
+  useEffect(() => {
+    fetchReport(true);
+    timerRef.current = setInterval(() => fetchReport(false), POLL_MS);
+    return () => clearInterval(timerRef.current);
+  }, [fetchReport]);
 
   const exportReport = async (format) => {
     setExporting(format);
@@ -60,7 +72,14 @@ const Reports = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">รายงานการจอง</h1>
-          <p className="text-gray-500 text-sm mt-0.5">ข้อมูลสถิติและสรุปผลการจองทั้งหมด</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-gray-500 text-sm">ข้อมูลสถิติและสรุปผลการจองทั้งหมด</p>
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              {isOnline ? 'LIVE' : 'ออฟไลน์'}
+              {lastUpdated && ` · ${lastUpdated.toLocaleTimeString('th-TH')}`}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2">
           <button onClick={() => exportReport('csv')} disabled={!!exporting}

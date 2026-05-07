@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import API_URL from '../config';
+
+const POLL_MS = 10000;
 
 const statusLabel = { pending: 'รอดำเนินการ', confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิก', completed: 'เสร็จสิ้น' };
 const statusColor = {
@@ -18,22 +20,32 @@ const BookingList = () => {
   const [error, setError]       = useState(null);
   const [search, setSearch]     = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
   const { token, logout } = useAuth();
+  const timerRef = useRef(null);
 
-  useEffect(() => { fetchBookings(); }, [token]);
-
-  const fetchBookings = async () => {
-    setLoading(true);
+  const fetchBookings = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/api/bookings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setBookings(res.data);
+      setLastUpdated(new Date());
+      setIsOnline(true);
+      setError(null);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) logout();
-      else setError('ไม่สามารถดึงข้อมูลได้');
+      else { setError('ไม่สามารถดึงข้อมูลได้'); setIsOnline(false); }
     } finally { setLoading(false); }
-  };
+  }, [token, logout]);
+
+  useEffect(() => {
+    fetchBookings(true);
+    timerRef.current = setInterval(() => fetchBookings(false), POLL_MS);
+    return () => clearInterval(timerRef.current);
+  }, [fetchBookings]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('ต้องการลบการจองนี้?')) return;
@@ -72,7 +84,14 @@ const BookingList = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">การจองทั้งหมด</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{bookings.length} รายการ</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-gray-500 text-sm">{bookings.length} รายการ</p>
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              {isOnline ? 'LIVE' : 'ออฟไลน์'}
+              {lastUpdated && ` · ${lastUpdated.toLocaleTimeString('th-TH')}`}
+            </span>
+          </div>
         </div>
         <Link to="/admin/bookings/new"
           className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">

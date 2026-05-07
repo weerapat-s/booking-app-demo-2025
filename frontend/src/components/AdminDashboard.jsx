@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API_URL from '../config';
+
+const POLL_MS = 10000;
 
 const StatCard = ({ label, value, sub, color, icon }) => (
   <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
@@ -30,21 +32,33 @@ const AdminDashboard = () => {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms]       = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const timerRef = useRef(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [b, r] = await Promise.all([
+        axios.get(`${API_URL}/api/bookings`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/api/rooms`),
+      ]);
+      setBookings(b.data);
+      setRooms(r.data);
+      setLastUpdated(new Date());
+      setIsOnline(true);
+    } catch {
+      setIsOnline(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [b, r] = await Promise.all([
-          axios.get(`${API_URL}/api/bookings`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_URL}/api/rooms`),
-        ]);
-        setBookings(b.data);
-        setRooms(r.data);
-      } catch { /* handled by ProtectedRoute */ }
-      finally { setLoading(false); }
-    };
-    if (token) load();
-  }, [token]);
+    if (!token) return;
+    load();
+    timerRef.current = setInterval(load, POLL_MS);
+    return () => clearInterval(timerRef.current);
+  }, [load, token]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -77,9 +91,20 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">ภาพรวมระบบ</h1>
-        <p className="text-gray-500 text-sm mt-1">ข้อมูล ณ วันนี้</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">ภาพรวมระบบ</h1>
+          <p className="text-gray-500 text-sm mt-1">ข้อมูล ณ วันนี้</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+          <span>{isOnline ? 'LIVE' : 'ออฟไลน์'}</span>
+          {lastUpdated && (
+            <span className="text-gray-400">
+              อัปเดต {lastUpdated.toLocaleTimeString('th-TH')}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* KPI cards */}

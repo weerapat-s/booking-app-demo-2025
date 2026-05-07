@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import API_URL from '../config';
+
+const POLL_MS = 15000;
 
 const RoomsManagement = () => {
   const { token, logout } = useAuth();
@@ -11,18 +13,28 @@ const RoomsManagement = () => {
   const [error, setError]   = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const timerRef = useRef(null);
 
-  useEffect(() => { fetchRooms(); }, []);
-
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/api/rooms`);
       setRooms(res.data);
+      setLastUpdated(new Date());
+      setIsOnline(true);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) logout();
-      else setError('ไม่สามารถดึงข้อมูลห้องพักได้');
+      else { setError('ไม่สามารถดึงข้อมูลห้องพักได้'); setIsOnline(false); }
     } finally { setLoading(false); }
-  };
+  }, [logout]);
+
+  useEffect(() => {
+    fetchRooms(true);
+    timerRef.current = setInterval(() => fetchRooms(false), POLL_MS);
+    return () => clearInterval(timerRef.current);
+  }, [fetchRooms]);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -46,7 +58,7 @@ const RoomsManagement = () => {
         await axios.post(`${API_URL}/api/rooms`, form, { headers: { Authorization: `Bearer ${token}` } });
       }
       resetForm();
-      fetchRooms();
+      fetchRooms(false);
     } catch (err) {
       setError(err.response?.data?.error || 'เกิดข้อผิดพลาด');
     }
@@ -64,7 +76,7 @@ const RoomsManagement = () => {
     if (!window.confirm('ยืนยันการลบห้องพักนี้?')) return;
     try {
       await axios.delete(`${API_URL}/api/rooms/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-      fetchRooms();
+      fetchRooms(false);
     } catch (err) {
       setError(err.response?.data?.error || 'เกิดข้อผิดพลาดในการลบ');
     }
@@ -77,7 +89,14 @@ const RoomsManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">จัดการห้องพัก</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{rooms.length} ห้องพักในระบบ</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-gray-500 text-sm">{rooms.length} ห้องพักในระบบ</p>
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              {isOnline ? 'LIVE' : 'ออฟไลน์'}
+              {lastUpdated && ` · ${lastUpdated.toLocaleTimeString('th-TH')}`}
+            </span>
+          </div>
         </div>
         <button onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
