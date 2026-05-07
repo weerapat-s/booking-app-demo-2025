@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import BookingForm      from './components/BookingForm';
 import BookingList      from './components/BookingList';
@@ -18,7 +18,8 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/"       element={<PublicLayout><HomePage /></PublicLayout>} />
+          <Route path="/"        element={<Navigate to="/login" replace />} />
+          <Route path="/home"    element={<PublicLayout><HomePage /></PublicLayout>} />
           <Route path="/booking" element={<PublicLayout><BookingForm /></PublicLayout>} />
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -56,11 +57,11 @@ const NavBar = () => {
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-30">
       <div className="max-width mx-auto px-4 sm:px-6" style={{ maxWidth: 1100 }}>
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center gap-2 font-bold text-gray-800 text-lg">
+          <Link to="/home" className="flex items-center gap-2 font-bold text-gray-800 text-lg">
             <span className="text-2xl">🏨</span> LuxeStay
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <Link to="/" className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">หน้าแรก</Link>
+            <Link to="/home" className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">หน้าแรก</Link>
             <Link to="/booking"
               className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">จองห้องพัก</Link>
             {user ? (
@@ -109,7 +110,7 @@ const HomePage = () => (
             className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors text-sm">
             จองห้องพักเลย →
           </Link>
-          <a href="#rooms"
+          <a href="/home#rooms"
             className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-xl transition-colors text-sm">
             ดูห้องพัก
           </a>

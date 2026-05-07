@@ -104,7 +104,7 @@ const Login = () => {
           </div>
 
           <div className="text-center mt-6">
-            <Link to="/" className="text-sm text-gray-400 hover:text-gray-600">← กลับหน้าหลัก</Link>
+            <Link to="/home" className="text-sm text-gray-400 hover:text-gray-600">← กลับหน้าหลัก</Link>
           </div>
         </div>
       </div>
